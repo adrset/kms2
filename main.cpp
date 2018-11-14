@@ -2,6 +2,7 @@
 #include <vector>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <TROOT.h>
 #include <TSystem.h>
 #include <TApplication.h>
@@ -12,21 +13,15 @@
 #include <TGraph.h>
 using namespace std;
 
-const double a = 0.38;
-const double T_0 = 100;
 const unsigned int N = 100;
-const double k = 0.00831;
-const double m = 39.948;
-const double R = 0.38;
-const double L = 2.3;
-const double f = 10000.0;
-const double e = 1.0;
 const double dx = 1.0 / (double )N;
 const double PI = 3.14159265359;
+const double hbar = 1.0;
 double kappa = 0;
 double omega = 0;
 double tau   = 0;
-double dt = 0.0001;
+double dt = 0.001;
+const unsigned int n = 1;
 
 double pown(double a, int power){
 	double ret = a;
@@ -78,7 +73,7 @@ int main( int argc, char** argv ){
 	double* p = new double[N + 1];
 
 	for( unsigned int k = 0 ; k < N + 1; k++ ){
-		re[ k ] = sqrt(2) * sin ( PI * k * dx);
+		re[ k ] = sqrt(2) * sin ( n * PI * k * dx);
 		im[ k ] = 0;
 		p[ k ] = 0;
 	}
@@ -91,43 +86,56 @@ int main( int argc, char** argv ){
 // Compute Hamiltonians
 	for( unsigned int k = 1 ; k < N ; k++ ){
 
-		hi[ k ] = computeHamiltonian(hi, k);
+		hi[ k ] = computeHamiltonian(im, k);
 
-		hr[ k ] = computeHamiltonian(hr, k);
-
+		hr[ k ] = computeHamiltonian(re, k);
 	}
 
 	double tmpRe = 0.;
-	for( unsigned int sim = 0; sim < 100000; sim++ ) {
+	for( unsigned int sim = 0; sim < 10000; sim++ ) {
 
-		for( unsigned int k = 1 ; k < N ; k++ ){
+		for( unsigned int k = 0 ; k < N+1 ; k++ ){
 			
 			// half dt
 			re [ k ] = re [ k ] +  hi[ k ] * dt / 2.0;
-			hr [ k ] = computeHamiltonian(hr, k);
+			
+		}
+		for( unsigned int k = 1 ; k < N ; k++ ){
+			hr [ k ] = computeHamiltonian(re, k);
+		}
 			
 			// imaginary psi and hamiltonian
+		for( unsigned int k = 0 ; k < N+1 ; k++ ){
 			im [ k ] = im [ k ] - hr [ k ] * dt;
-			hi [ k ] = computeHamiltonian(hi, k);
-			
-			// real psi and hamiltonian
-			re [ k ] = re [ k ] + hi [ k ] * dt / 2.0;
-			hr [ k ] = computeHamiltonian(hr, k);
-			
-			p[ k ]  =  re[ k ] * re[ k ]  + im[ k ] * im[ k ];
-		
+		}
+		for( unsigned int k = 1 ; k < N ; k++ ){
+			hi [ k ] = computeHamiltonian(im, k);
 		}
 		
+			
+			// real psi and hamiltonian
+		for( unsigned int k = 0 ; k < N + 1; k++ ){
+			re [ k ] = re [ k ] + hi [ k ] * dt / 2.0;
+		}
+			
+		for( unsigned int k = 1 ; k < N ; k++ ){
+			p[ k ]  =  re[ k ] * re[ k ]  + im[ k ] * im[ k ];
+		}
+		
+		
+		
 		if(sim % 100 == 0){
-			for( unsigned int k = 0 ; k < N + 1 ; k++ ){
-				out<< k << "\t" << p[ k ] << std::endl; 
-			}
-			out<< std::endl<< std::endl;
+			
+			//out<< std::endl<< std::endl;
 			
 		}
 
 
 	}
+	
+	for( unsigned int k = 0 ; k < N + 1 ; k++ ){
+				out<< re[ k ] << std::endl; 
+		}
 
 
 
