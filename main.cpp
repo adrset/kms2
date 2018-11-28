@@ -8,6 +8,7 @@
 #include <TApplication.h>
 #include <TLegend.h>
 #include <TMultiGraph.h>
+#include <cstdlib>
 
 #include <TCanvas.h>
 #include <TRandom.h>
@@ -17,19 +18,21 @@ using namespace std;
 
 #include <iostream>
 #include <cmath>
+#include "Properties.hpp"
 //#include <string>
 
 using namespace std;
 
 const double pi = 3.14159265359;
 
-const unsigned int N = 100;
-const double dx = 1. / N;
-const double dt = 0.0001;
-const int out_frequency = 10;
-const int av_frequency = 10;
-const double kappa = 5;
-const double omega = 3./2. * pi * pi;
+unsigned int N = 0;
+double dx = 0;
+double dt = 0;
+int out_frequency = 0;
+int av_frequency = 0;
+double kappa = 0;
+double omega = 0;
+double stat = 0;
 
 double pown(double a, int power)
 {
@@ -106,11 +109,23 @@ double calculateAvEnergy(double *im, double *re, double *HI, double *HR)
 
 int main(int argc, char *argv[])
 {
-	if(argc<3)
+	if(argc<2)
 		return 1;
 
-	int steps = std::stoi(argv[1]);
-	int frames = std::stoi(argv[2]);
+	std::string file (argv[1]);
+	Properties prop("simulation.properties");
+	N = prop.getProperty("simulation.N");
+	dx = 1. / N;
+	stat = prop.getProperty("simulation.n");
+	dt = prop.getProperty("simulation.dt");
+	out_frequency = prop.getProperty("simulation.out_frequency");
+	av_frequency = prop.getProperty("simulation.av_frequency");
+	kappa = prop.getProperty("simulation.kappa");
+	omega = prop.getProperty("simulation.omega")/2.* pi * pi;
+
+	int steps = prop.getProperty("simulation.steps");
+	int frames = prop.getProperty("simulation.frames");
+	int whatToDraw = prop.getProperty("simulation.mode");
 
 	std::ofstream out("density.dat");
 	double *re = new double[N + 1];
@@ -130,7 +145,7 @@ int main(int argc, char *argv[])
 
 	for (unsigned int ii = 0; ii < N + 1; ii++)
 	{
-		re[ii] = calculateStationary(1, ii);
+		re[ii] = calculateStationary(stat, ii);
 		x[ii] = ii;
 		im[ii] = 0;
 	}
@@ -178,7 +193,7 @@ int main(int argc, char *argv[])
 		}
 
 		if(sim % (steps / frames) == 0){
-			std::cout<<currentFrame<<std::endl;
+			std::cout<<"Current frame: "<<currentFrame<<std::endl;
 			memcpy(pp[currentFrame++],p , (N+1)*sizeof(double));
 		}
 
@@ -192,56 +207,65 @@ int main(int argc, char *argv[])
 		tau +=dt;
 	}
 
-	TMultiGraph *mg = new TMultiGraph();
-	TString tt = "Density plot; x; ro";
+	if(whatToDraw == 1){
+		TMultiGraph *mg = new TMultiGraph();
+		TString tt = "Density plot; x; ro";
 
-	mg->SetTitle(tt);
+		mg->SetTitle(tt);
 
-	TApplication *rootapp = new TApplication("Pusta", 0, argv);
+		TApplication *rootapp = new TApplication("Pusta", 0, argv);
 
-	TCanvas *tc = new TCanvas("c1", "E", 0, 0, 1400, 400);
-	tc->Divide(2,1);
-	tc->cd(1);
-	TGraph **graphs = new TGraph*[frames]; 
-	TLegend* l=new TLegend(0.91,0.425,0.99,0.625);
-	l->SetHeader("Density");
-	//
-	for(int ii=0;ii<frames;ii++){
-		graphs[ii] = new TGraph(N + 1, x, pp[ii]);
-		TString nam = "graph";
-		nam += ii;
-		int col = 2 + ii;
-		TString nam2 = "";
-		nam2 += (ii+1);
-		nam2 += "/";
-		nam2 += frames;
-		nam2+= " * Tau";
-		TString color = "l";
-		color+= col;
-		l->AddEntry(nam,nam2, color);
-		graphs[ii]->SetMarkerStyle(19);
-		graphs[ii]->SetMarkerColor(col);
-		graphs[ii]->SetLineWidth(2);
-		graphs[ii]->SetLineColor(col);
-		mg->Add(graphs[ii]);
+		TCanvas *tc = new TCanvas("c1", "E", 0, 0, 1400, 400);
+		tc->Divide(2,1);
+		tc->cd(1);
+		TGraph **graphs = new TGraph*[frames]; 
+		TLegend* l=new TLegend(0.91,0.425,0.99,0.625);
+		l->SetHeader("Density");
+		//
+		for(int ii=0;ii<frames;ii++){
+			graphs[ii] = new TGraph(N + 1, x, pp[ii]);
+			TString nam = "graph";
+			nam += ii;
+			int col = 2 + ii;
+			TString nam2 = "";
+			nam2 += (ii+1);
+			nam2 += "/";
+			nam2 += frames;
+			nam2+= " * Tau";
+			TString color = "l";
+			color+= col;
+			l->AddEntry(nam,nam2, color);
+			graphs[ii]->SetMarkerStyle(19);
+			graphs[ii]->SetMarkerColor(col);
+			graphs[ii]->SetLineWidth(2);
+			graphs[ii]->SetLineColor(col);
+			mg->Add(graphs[ii]);
+		}
+		
+		//mg->Add(graph1);
+		TGraph *graph2 = new TGraph(steps / av_frequency, time, energy);
+		graph2->SetMarkerStyle(19);
+		graph2->SetMarkerColor(3);
+		graph2->SetLineWidth(2);
+		graph2->SetLineColor(3);
+		graph2->SetName("graph2");
+		graph2->SetTitle("Energy plot; t; E");
+
+		
+		mg->Draw("AL");
+		l->Draw();
+		tc->cd(2);
+		graph2->Draw("AL");
+		rootapp->Run();
+	}else if(whatToDraw == 2){
+		system("gnuplot animate.dem");
+
 	}
-	
-	//mg->Add(graph1);
-	TGraph *graph2 = new TGraph(steps / av_frequency, time, energy);
-	graph2->SetMarkerStyle(19);
-	graph2->SetMarkerColor(3);
-	graph2->SetLineWidth(2);
-	graph2->SetLineColor(3);
-	graph2->SetName("graph2");
-	graph2->SetTitle("Energy plot; t; E");
+	for(int ii=0;ii<frames;ii++){
+		delete[] pp[ii];
+	}
 
-	
-	mg->Draw("AL");
-	l->Draw();
-	tc->cd(2);
-	graph2->Draw("AL");
-	rootapp->Run();
-
+	delete[] pp;
 	delete[] hr;
 	delete[] hi;
 	delete[] re;

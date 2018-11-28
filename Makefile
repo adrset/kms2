@@ -4,7 +4,7 @@ LDOPTS=`root-config --libs` -g
 CFLAGS=-Wall -pedantic -std=c++11 -O3
 AUTHOR= Adrian Setniewski
 #C++ Files
-SOURCES =  main.cpp  Dict.cpp
+SOURCES =  main.cpp Properties.cpp  Dict.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 #Dictionary classes
 HEADERS = 
