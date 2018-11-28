@@ -91,11 +91,10 @@ double calculateNorm(double *im, double *re)
 
 double calculateAvPos(double *im, double *re)
 { // calculate average position
-	double ret = 1.;
-	ret *= dx;
+	double ret = 1;
 	for (unsigned int ii = 0; ii < N + 1; ii++)
 		ret += (ii * dx * (re[ii] * re[ii] + im[ii] * im[ii]));
-	return ret;
+	return ret*dx;
 }
 
 double calculateAvEnergy(double *im, double *re, double *HI, double *HR)
@@ -207,6 +206,7 @@ int main(int argc, char *argv[])
 		tau +=dt;
 	}
 
+	std::cout<<"Max energy value = " << getMax(energy, steps/av_frequency)<<std::endl;
 	if(whatToDraw == 1){
 		TMultiGraph *mg = new TMultiGraph();
 		TString tt = "Density plot; x; ro";
