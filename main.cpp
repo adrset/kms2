@@ -91,7 +91,7 @@ double calculateNorm(double *im, double *re)
 
 double calculateAvPos(double *im, double *re)
 { // calculate average position
-	double ret = 1;
+	double ret = 1.;
 	for (unsigned int ii = 0; ii < N + 1; ii++)
 		ret += (ii * dx * (re[ii] * re[ii] + im[ii] * im[ii]));
 	return ret*dx;
@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
 	hi[N] = 0.0;
 	int currentFrame=0;
 	double* energy = new double[steps/av_frequency];
+	double* avPos = new double[steps/av_frequency];
 	double* time = new double[steps/av_frequency];
 	for (unsigned int sim = 0; sim < steps; sim++)
 	{
@@ -188,6 +189,7 @@ int main(int argc, char *argv[])
 
 		if(sim % av_frequency == 0){
 			energy[sim/av_frequency] = calculateAvEnergy(re, im, hr, hi);
+			avPos[sim/av_frequency] = calculateAvPos(re, im);
 			time[sim/av_frequency] = tau;
 		}
 
@@ -216,7 +218,7 @@ int main(int argc, char *argv[])
 		TApplication *rootapp = new TApplication("Pusta", 0, argv);
 
 		TCanvas *tc = new TCanvas("c1", "E", 0, 0, 1400, 400);
-		tc->Divide(2,1);
+		tc->Divide(2,2);
 		tc->cd(1);
 		TGraph **graphs = new TGraph*[frames]; 
 		TLegend* l=new TLegend(0.91,0.425,0.99,0.625);
@@ -256,6 +258,15 @@ int main(int argc, char *argv[])
 		l->Draw();
 		tc->cd(2);
 		graph2->Draw("AL");
+		tc->cd(3);
+		TGraph *graph3 = new TGraph(steps / av_frequency, time, avPos);
+		graph3->SetMarkerStyle(19);
+		graph3->SetMarkerColor(3);
+		graph3->SetLineWidth(2);
+		graph3->SetLineColor(3);
+		graph3->SetName("graph3");
+		graph3->SetTitle("Energy plot; t; E");
+		graph3->Draw("AL");
 		rootapp->Run();
 	}else if(whatToDraw == 2){
 		system("gnuplot animate.dem");
